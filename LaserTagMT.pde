@@ -254,36 +254,6 @@ void loop() {
 
 
 
-// PLAY function - GRP: Not Required...
-/*
- void playfile(char *name) {
- // see if the wave object is currently doing something
- if (wave.isplaying) {// already playing something, so stop it!
- wave.stop(); // stop it
- }
- 
- // look in the root directory and open the file
- if (!f.open(root, name)) {
- putstring("Couldn't open file ");
- Serial.print(name);
- return;
- }
- 
- // OK read the file and turn it into a wave object
- if (!wave.create(f)) {
- putstring_nl("Not a valid WAV");
- return;
- }
- 
- // ok time to play! start playback
- digitalWrite(8, HIGH); // enable amp
- SET(PORTB,0);
- wave.play();
- }
- */
-
-
-
 //ISR ROUTINE
 
 ISR(TIMER2_OVF_vect, ISR_NOBLOCK){
@@ -308,8 +278,8 @@ ISR(TIMER2_OVF_vect, ISR_NOBLOCK){
   //TRANSMISSION
 
   if(bitstx != 0) {  //if we have got something to transmit
-
     timertx++;
+    
     if(timertx >= resettx) {  //if reset value is reached
       timertx=0;
       if(spacetx){  //it was a space that has just been sent thus a total "set" (bit + space) so..
@@ -424,7 +394,3 @@ ISR(TIMER2_OVF_vect, ISR_NOBLOCK){
     break;
   }
 }
-
-
-
-
