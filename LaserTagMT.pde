@@ -168,7 +168,7 @@ void loop() {
   }
 
   // RELOADING
-  // GRP: We will probably replace this with something smaler
+  // GRP: We will probably replace this with something more flexible and move it into Ammo.pde
   if(!(PINC & 0b00001000) && reloadreleased && (elapsed-lastreload)>=1000){  // if reload button has been pressed, empty chamber first, then if magazine is in put a bullet in the chamber.
 
     reloadreleased = false;
