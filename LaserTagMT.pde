@@ -7,8 +7,12 @@ unsigned long elapsed = 0; // stores millis() function
 unsigned long lastshot = 0 ; // time at which last shot occurred
 boolean reloadreleased = true; // whether or not button for reloading is released
 unsigned long lastreload = 0; //debouncer for reload button
+
+// bullets for each magazine
 unsigned int magazines[] = {
-  30,30,30,30};  // bullets for each magazine
+  30,30,30,30
+};
+
 
 unsigned long ircode = 0;     // gun-specific code
 int temp = 0;                // temp variable, used for multiple temp stuff
@@ -33,20 +37,7 @@ int magazine_used = 0;
 #define CLR(x,y) (x&=(~(1<<y)))
 #define SET(x,y) (x|=(1<<y))
 
-// WAVE stuff
-/* GRP: This block is not required.. using ISD sound chip instead...
-#include <FatReader.h>
-#include <SdReader.h>
-#include <avr/pgmspace.h>
-#include "WaveUtil.h"
-#include "WaveHC.h"
-*/
 
-// ERROR: Missing Library: SdReader card;    // This object holds the information for the card
-// ERROR: Missing Library: FatVolume vol;    // This holds the information for the partition on the card
-// ERROR: Missing Library: FatReader root;   // This holds the information for the filesystem on the card
-// ERROR: Missing Library: FatReader f;      // This holds the information for the file we're play
-// ERROR: Missing Library: WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
 // TX_RX const
 
@@ -54,7 +45,7 @@ int magazine_used = 0;
 #define STATE_MARK     3
 #define STATE_SPACE    4
 #define STATE_STOP     5
-#define STATE_HDR     6
+#define STATE_HDR      6
 #define MARK  0
 #define SPACE 1
 #define TOPBIT 0x80000000
@@ -78,8 +69,6 @@ boolean spacetx = false;
 #define putstring_nl(s) Serial.println(s)
 #define putstring(s) Serial.print(s)
 
-
-
 // Free RAM
 int freeRam(void)
 {
@@ -97,29 +86,10 @@ int freeRam(void)
 }
 
 
-// ERROR: The following function is not used..
-// SD function
-/*void sdErrorCheck(void)
- {
- if (!card.errorCode()) return;
- 
- putstring("\n\rSD I/O error: ");
- Serial.print(card.errorCode(), HEX);
- putstring(", ");
- Serial.println(card.errorData(), HEX);
- 
- while(1);
- } */
-
-
-
 // SETUP function
-
-
-
 void setup() {
   Serial.begin(9600);
-  putstring_nl("WaveHC with 6 buttons");
+  putstring_nl("Guerrilla Tag");
   putstring("Free RAM: ");
   Serial.println(freeRam());      // if this is under 150 bytes it may spell trouble!
 
@@ -148,48 +118,6 @@ void setup() {
   pinMode(3, OUTPUT); //secondary audio
   pinMode(tsoppin, INPUT);
 
-  //  if (!card.init(true)) { //play with 4 MHz spi if 8MHz isn't working for you
-  /* if (!card.init()) {         //play with 8 MHz spi (default faster!)
-    putstring_nl("Card init. failed!");  // Something went wrong, lets print out why
-    sdErrorCheck();
-    while(1);                            // then 'halt' - do nothing!
-  } */
-
-  // enable optimize read - some cards may timeout. Disable if you're having problems
-
-  //card.partialBlockRead(true);
-
-  // Now we will look for a FAT partition!
-
-  /* GRP: THis is not being used...
-  uint8_t part;
-
-  for (part = 0; part < 5; part++) {     // we have up to 5 slots to look in
-    if (vol.init(card, part))
-      break;                             // we found one, lets bail
-  }
-
-  if (part == 5) {                       // if we ended up not finding one  :(
-    putstring_nl("No valid FAT partition!");
-    sdErrorCheck();      // Something went wrong, lets print out why
-    while(1);                            // then 'halt' - do nothing!
-  }
-
-  // Lets tell the user about what we found
-  putstring("Using partition ");
-  Serial.print(part, DEC);
-  putstring(", type is FAT");
-  Serial.println(vol.fatType(),DEC);     // FAT16 or FAT32?
-  // Try to open the root directory
-
-  if (!root.openRoot(vol)) {
-    putstring_nl("Can't open root dir!"); // Something went wrong,
-    while(1);                             // then 'halt' - do nothing!
-  }
-  */
-  
-  // Whew! We got past the tough parts.
-
   putstring_nl("Ready!");
 
   //-------
@@ -200,14 +128,13 @@ void setup() {
   //COM2B1=1 sets PWM active on pin3, COM2B1=0 disables it (25us ticks)
 
   digitalWrite(tsoppin, HIGH);
-
   TCCR2A = _BV(WGM21) | _BV(WGM20);
   TCCR2B = _BV(WGM22) | _BV(CS21);
   OCR2A = 49;
   OCR2B = 24;
   TIMSK2 |= _BV(TOIE2); //activate interrupt on overflow (TOV flag, triggers at OCR2A)
   ircode = (player << 10) | (team << 8) | ((damage/2) << 2);
-  delay(500); // HUH: Why was this done?? 
+  delay(500); // HUH: Why was this done??
 }
 
 
@@ -241,13 +168,12 @@ void loop() {
   }
 
   // RELOADING
-
-  if(!(PINC & 0b00001000) && reloadreleased && (elapsed-lastreload)>=1000){  // if reload button has been press, empty chamber first, then if magazine is in put a bullet in the chamber.
+  // GRP: We will probably replace this with something smaler
+  if(!(PINC & 0b00001000) && reloadreleased && (elapsed-lastreload)>=1000){  // if reload button has been pressed, empty chamber first, then if magazine is in put a bullet in the chamber.
 
     reloadreleased = false;
-
     barrelbullet = false;
-
+    
     temp = analogRead(magazine_pin);
 
     if((temp>=35) && (temp<=55) && magazines[0]>0){  // MAG number 0
@@ -281,7 +207,8 @@ void loop() {
     else{
       selector = 0;
     }
-    // GRP: Was REFACTOR BELOW: if(!barrelbullet && (wave.isplaying) && magazines[magazine_used] == 0) {// prevents full auto sound from non-stopping when magazine is == 0 but button is still pressed
+    // GRP: Was REFACTOR BELOW: if(!barrelbullet && (wave.isplaying) && magazines[magazine_used] == 0) {// prevents full auto sound from
+    //    on-stopping when magazine is == 0 but button is still pressed
     if(!barrelbullet  && magazines[magazine_used] == 0) {// prevents full auto sound from non-stopping when magazine is == 0 but button is still pressed
       //wave.stop();
       CLR(PORTB,0);
@@ -324,70 +251,38 @@ void loop() {
 
 
 
-// MAGAZINE function
-
-void magazineupdate(){
-  temp = analogRead(magazine_pin);
-  if((temp>=25) && (temp<=65) && magazines[0]>0){  // MAG number 0
-    magazine_used = 0;
-    magazines[0] -= 1;
-    barrelbullet = true;
-  }
-  else if((temp>=285) && (temp<=325) && magazines[1]>0){  // MAG number 1
-    magazine_used = 1;
-    magazines[1] -= 1;
-    barrelbullet = true;
-  }
-  Serial.println(temp);
-}
 
 
 
 // PLAY function - GRP: Not Required...
-/* 
-void playfile(char *name) {
-  // see if the wave object is currently doing something
-  if (wave.isplaying) {// already playing something, so stop it!
-    wave.stop(); // stop it
-  }
+/*
+ void playfile(char *name) {
+ // see if the wave object is currently doing something
+ if (wave.isplaying) {// already playing something, so stop it!
+ wave.stop(); // stop it
+ }
+ 
+ // look in the root directory and open the file
+ if (!f.open(root, name)) {
+ putstring("Couldn't open file ");
+ Serial.print(name);
+ return;
+ }
+ 
+ // OK read the file and turn it into a wave object
+ if (!wave.create(f)) {
+ putstring_nl("Not a valid WAV");
+ return;
+ }
+ 
+ // ok time to play! start playback
+ digitalWrite(8, HIGH); // enable amp
+ SET(PORTB,0);
+ wave.play();
+ }
+ */
 
-  // look in the root directory and open the file
-  if (!f.open(root, name)) {
-    putstring("Couldn't open file ");
-    Serial.print(name);
-    return;
-  }
 
-  // OK read the file and turn it into a wave object
-  if (!wave.create(f)) {
-    putstring_nl("Not a valid WAV");
-    return;
-  }
-
-  // ok time to play! start playback
-  digitalWrite(8, HIGH); // enable amp
-  SET(PORTB,0);
-  wave.play();
-}
-*/
-
-
-// IRsend function
-boolean SonyIR(unsigned long data, int nbits) {
-  if(bitstx == 0) { //if IDLE then transmit
-    timertx=0; //reset timer
-    resettx=96; //initial header pulse is 2400us long. 2400/25us ticks = 96
-    spacetx = false;
-    datatx=data << (32 - (nbits + 1)); //unsigned long is 32 bits. data gets   shifted so that the leftmost (MSB) will be the first of the 32.
-    TCCR2A |= _BV(COM2B1); // Enable pin 3 PWM output for transmission of header
-    bitstx=nbits + 1; //bits left to transmit, including header
-
-    return true;
-  }
-  else {
-    return false;
-  }
-}
 
 //ISR ROUTINE
 
@@ -529,4 +424,7 @@ ISR(TIMER2_OVF_vect, ISR_NOBLOCK){
     break;
   }
 }
+
+
+
 
